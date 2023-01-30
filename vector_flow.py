@@ -91,9 +91,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111,projection='3d')
 sphere = qutip.Bloch(fig=fig, axes=ax)
 sphere.make_sphere()
-# ax.streamplot(X, Y, Z, Z/2, -Z/2, (Y - X)/2)    # Does not exist(?)
 line1 = paths(1./np.sqrt(2), 1./np.sqrt(2), nr_steps=10000)
-# print(line1)
 ax.plot(line1[0,:],line1[1,:],line1[2,:])
 # plt.show()
 # """
@@ -169,60 +167,3 @@ ax22.set_axis_off() # Remove background
 
 plt.show()
 # """
-
-# # Attempt 4
-# fig = plt.figure()
-# ax = fig.add_subplot(projection='3d', polar=True)
-
-# radii = np.linspace(0.5,1,10)
-# thetas = np.linspace(0,2*np.pi,20)
-# phis = np.linspace(0,np.pi,20)
-# phi, theta, r = np.meshgrid(phis, thetas, radii)
-
-# ax.quiver(phi, theta, r, dr * np.cos(theta) - dt * np.sin (theta), dr * np.sin(theta) + dt * np.cos(theta), r)
-
-# plt.show()
-
-# # Attempt 3
-# radii = np.linspace(0.5,1,10)
-# thetas = np.linspace(0,2*np.pi,20)
-# theta, r = np.meshgrid(thetas, radii)
-
-# dr = 1
-# dt = 1
-
-# f = plt.figure()
-# ax = f.add_subplot(111, polar=True)
-# ax.quiver(theta, r, dr * np.cos(theta) - dt * np.sin (theta), dr * np.sin(theta) + dt * np.cos(theta))
-
-# plt.show()
-
-# # Attempt 2
-# fig = plt.figure()
-# ax = Axes3D(fig, auto_add_to_figure=False, azim=-40, elev=30)
-# fig.add_axes(ax)
-
-# sphere = qutip.Bloch(fig=fig, axes=ax)
-# sphere.render(sphere.fig, sphere.axes)
-
-# new_arrow = qutip.bloch.Arrow3D(xs=[1, 1], ys=[0, .5], zs=[0, .5],
-#                     mutation_scale=b.vector_mutation,
-#                     lw=b.vector_width, arrowstyle=b.vector_style, color='blue')
-# sphere.axes.add_artist(new_arrow)
-
-# # Attempt 1
-# ax = plt.figure().add_subplot(projection='3d')
-
-# # Make the grid
-# x, y, z = np.meshgrid(np.arange(-1, 1, 0.2),
-#                       np.arange(-1, 1, 0.2),
-#                       np.arange(-1, 1, 0.2))
-
-# # Make the direction data for the arrows
-# u = z
-# v = -z
-# w = y-x
-
-# ax.quiver(x, y, z, u, v, w, length=0.1, normalize=True)
-
-# plt.show()
