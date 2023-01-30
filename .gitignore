@@ -130,6 +130,7 @@ dmypy.json
 
 # Texts, books and animations
 .pdf
+.txt
 WRONG_animation/
 books_and_articles/
 animation/
