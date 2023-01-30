@@ -129,8 +129,8 @@ dmypy.json
 .pyre/
 
 # Texts, books and animations
-.pdf
-.txt
-WRONG_animation/
+*.pdf
+*.txt
+WRONG_animations/
 books_and_articles/
 animation/
