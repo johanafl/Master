@@ -25,7 +25,7 @@ class Arrow3D(FancyArrowPatch):
 
         return np.min(zs)
 
-def paths(alpha_0, beta_0, flow1=True, nr_steps=1000):
+def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
     # Related to interaction strength/time
     theta_minus = 0.1
     theta_pluss = 0.01 #theta_minus/5
@@ -39,29 +39,55 @@ def paths(alpha_0, beta_0, flow1=True, nr_steps=1000):
     alpha[0] = alpha_0
     beta[0]  = beta_0
 
-    if flow1:
+    if flow == 0:
         for k in range(N):
             # H_int^+ interaction
             c_00 = alpha[k]
             c_01 = -1j*beta[k]*np.sin(theta_pluss/2)
             c_10 = beta[k]*np.cos(theta_pluss/2)
             c_11 = 0
+            # Measure up in x
             p_up = 0.5 - np.imag(alpha[k]*np.conj(beta[k]))*np.sin(theta_pluss/2)
-
             alpha[k+1] = (c_00+c_01)/np.sqrt(2*p_up)
             beta[k+1]  = (c_10+c_11)/np.sqrt(2*p_up)
+    
+    elif flow == 1:
+        for k in range(N):
+            # H_int^+ interaction
+            c_00 = alpha[k]
+            c_01 = -1j*beta[k]*np.sin(theta_pluss/2)
+            c_10 = beta[k]*np.cos(theta_pluss/2)
+            c_11 = 0
+            # Measure down in x
+            p_up = 0.5 - np.imag(alpha[k]*np.conj(beta[k]))*np.sin(theta_pluss/2)
+            alpha[k+1] = (c_00-c_01)/np.sqrt(2*(1-p_up))
+            beta[k+1]  = (c_10-c_11)/np.sqrt(2*(1-p_up))
+            
+
+    elif flow == 2:
+        for k in range(N):
+            # H_int^- interaction    
+            c_00 = alpha[k]*np.cos(theta_minus/2)
+            c_01 = 0
+            c_10 = beta[k]
+            c_11 = -1j*alpha[k]*np.sin(theta_minus/2)
+            # Measure up in x
+            p_up = 0.5 - np.imag(beta[k]*np.conj(alpha[k]))*np.sin(theta_minus/2)
+            alpha[k+1] = (c_00+c_01)/np.sqrt(2*p_up)
+            beta[k+1]  = (c_10+c_11)/np.sqrt(2*p_up)
+
 
     else:
         for k in range(N):
             # H_int^- interaction    
-            c_00 = alpha[k+1]*np.cos(theta_minus/2)
+            c_00 = alpha[k]*np.cos(theta_minus/2)
             c_01 = 0
-            c_10 = beta[k+1]
-            c_11 = -1j*alpha[k+1]*np.sin(theta_minus/2)
-            p_up = 0.5 - np.imag(beta[k+1]*np.conj(alpha[k+1]))*np.sin(theta_minus/2)
-
-            alpha[k+2] = (c_00-c_01)/np.sqrt(2*(1-p_up))
-            beta[k+2]  = (c_10-c_11)/np.sqrt(2*(1-p_up))
+            c_10 = beta[k]
+            c_11 = -1j*alpha[k]*np.sin(theta_minus/2)
+            # Measure down in x
+            p_up = 0.5 - np.imag(beta[k]*np.conj(alpha[k]))*np.sin(theta_minus/2)
+            alpha[k+1] = (c_00-c_01)/np.sqrt(2*(1-p_up))
+            beta[k+1]  = (c_10-c_11)/np.sqrt(2*(1-p_up))
 
     # Convert alpha and beta to Bloch vector
     bloch_vec = np.zeros((3,N+1))#,dtype=complex)
@@ -89,43 +115,83 @@ X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_spher
 # Streamlines does not appear to exist in 3D. Trying lineplots instead.
 fig = plt.figure()
 ax = fig.add_subplot(111,projection='3d')
+# Fixing Bloch sphere: x- and y-label is interchaged in source code
+# https://groups.google.com/g/qutip/c/LPt0niROuPA
 sphere = qutip.Bloch(fig=fig, axes=ax)
+sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
+sphere.xlpos = [-1.3,-1.3]
+sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
+sphere.ylpos = [1.3,-1.3]
 sphere.make_sphere()
-line1 = paths(1./np.sqrt(2), 1./np.sqrt(2), nr_steps=10000)
-ax.plot(line1[0,:],line1[1,:],line1[2,:])
+
+line = paths(np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4), np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4), flow=0, nr_steps=20000)
+ax.plot(line[0,:],line[1,:],line[2,:], color="red")
+line0 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000)
+line1 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=1, nr_steps=10000)
+line2 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=2, nr_steps=10000)
+line3 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=3, nr_steps=10000)
+# ax.plot(line0[0,:],line0[1,:],line0[2,:], color="red")
+# ax.plot(line1[0,:],line1[1,:],line1[2,:], color="green")
+# ax.plot(line2[0,:],line2[1,:],line2[2,:], color="blue")
+# ax.plot(line3[0,:],line3[1,:],line3[2,:], color="black")
+
 # plt.show()
 # """
 
-# Figure 1/Flow 1
+# Figure 1: H_+ and x_+
 fig1 = plt.figure()
 ax11 = fig1.add_subplot(121,projection='3d')
 ax12 = fig1.add_subplot(122,projection='3d')
+
+# Fixing Bloch sphere: x- and y-label is interchaged in source code
 sphere1 = qutip.Bloch(fig=fig1, axes=ax11)
+sphere1.xlabel = ['$\\left|y_+\\right>$', ' ']
+sphere1.xlpos = [-1.3,-1.3]
+sphere1.ylabel = ['$\\left|x_+\\right>$', ' ']
+sphere1.ylpos = [1.3,-1.3]
 sphere1.make_sphere()
 
-# Figure 2/Flow 2
+# Figure 2: H_+ and x_-
 fig2 = plt.figure()
 ax21 = fig2.add_subplot(121,projection='3d')
 ax22 = fig2.add_subplot(122,projection='3d')
+
+# Fixing Bloch sphere: x- and y-label is interchaged in source code
 sphere2 = qutip.Bloch(fig=fig2, axes=ax21)
+sphere2.xlabel = ['$\\left|y_+\\right>$', ' ']
+sphere2.xlpos = [-1.3,-1.3]
+sphere2.ylabel = ['$\\left|x_+\\right>$', ' ']
+sphere2.ylpos = [1.3,-1.3]
 sphere2.make_sphere()
 
-# Plot the surface
-# ax11.plot_surface(X_sphere, Y_sphere, Z_sphere, color='#FFDDDD', alpha=0.2)  # Stolen from https://qutip.org/docs/4.0.2/modules/qutip/bloch.html
-# ax11.plot_wireframe(X_sphere, Y_sphere, Z_sphere, color='gray', alpha=0.2)   # Stolen from https://qutip.org/docs/4.0.2/modules/qutip/bloch.html
-# ax11.plot(1.0 * np.cos(t_sphere), 1.0 * np.sin(t_sphere), zs=0, zdir='z', lw=1, color='gray')
-# ax11.plot(1.0 * np.cos(t_sphere), 1.0 * np.sin(t_sphere), zs=0, zdir='x', lw=1, color='gray')
+# Figure 3: H_- and x_+
+fig3 = plt.figure()
+ax31 = fig3.add_subplot(121,projection='3d')
+ax32 = fig3.add_subplot(122,projection='3d')
 
-ax11.quiver(X, Y, Z, -Y*X/2, (-Z+1-Y*Y)/2, (Y*(1 - Z))/2, length=0.3)#, headwidth=5.)
-# ax11.axis('off') # https://stackoverflow.com/questions/9295026/how-to-remove-axis-legends-and-white-padding
+# Fixing Bloch sphere: x- and y-label is interchaged in source code
+sphere3 = qutip.Bloch(fig=fig3, axes=ax31)
+sphere3.xlabel = ['$\\left|y_+\\right>$', ' ']
+sphere3.xlpos = [-1.3,-1.3]
+sphere3.ylabel = ['$\\left|x_+\\right>$', ' ']
+sphere3.ylpos = [1.3,-1.3]
+sphere3.make_sphere()
 
-# Plot the surface
-# ax12.plot_surface(X_sphere, Y_sphere, Z_sphere, color='#FFDDDD', alpha=0.2)
-#
-# ax12.plot([-1.2,1.2], [0,0], [0,0], alpha=0.4, color='black')
-# ax12.plot([0,0], [-1.2,1.2], [0,0], alpha=0.4, color='black')
-# ax12.plot([0,0], [0,0], [-1.2,1.2], alpha=0.4, color='black')
-#
+# Figure 4: H_- and x_-
+fig4 = plt.figure()
+ax41 = fig4.add_subplot(121,projection='3d')
+ax42 = fig4.add_subplot(122,projection='3d')
+
+# Fixing Bloch sphere: x- and y-label is interchaged in source code
+sphere4 = qutip.Bloch(fig=fig4, axes=ax41)
+sphere4.xlabel = ['$\\left|y_+\\right>$', ' ']
+sphere4.xlpos = [-1.3,-1.3]
+sphere4.ylabel = ['$\\left|x_+\\right>$', ' ']
+sphere4.ylpos = [1.3,-1.3]
+sphere4.make_sphere()
+
+# Vector flow figure 1
+ax11.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)#, headwidth=5.)
 # If we want arrows on coordinate system: https://stackoverflow.com/questions/57015852/is-there-a-way-to-plot-a-3d-cartesian-coordinate-system-with-matplotlib
 # Here we create the arrows:
 arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
@@ -141,12 +207,15 @@ ax12.text(1.3, 0, 0, r'$x$')
 ax12.text(0, 1.3, 0, r'$y$')
 ax12.text(0, 0, 1.3, r'$z$')
 #
-ax12.quiver(X, Y, Z, Z/2, -Z/2, (Y - X)/2, length=0.3)
+ax12.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)
+# ax12.quiver(X, Y, Z, Z/2, -Z/2, (Y - X)/2, length=0.3)
 ax12.set_axis_off() # Remove background
 # ax12.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
 
 
-ax21.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
+# Vector flow figure 2
+ax21.quiver(X, Y, Z, Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2, length=0.3)
+# ax21.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
 # Here we create the arrows:
 arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
 #
@@ -161,9 +230,51 @@ ax22.text(1.3, 0, 0, r'$x$')
 ax22.text(0, 1.3, 0, r'$y$')
 ax22.text(0, 0, 1.3, r'$z$')
 #
+ax22.quiver(X, Y, Z, Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2, length=0.3)
 # ax22.quiver(X, Y, Z, Z/2, -Z/2, (Y - X)/2, length=0.3)
-ax22.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
+# ax22.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
 ax22.set_axis_off() # Remove background
+
+
+# Vector flow figure 3
+ax31.quiver(X, Y, Z, Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2, length=0.3)
+# Here we create the arrows:
+arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
+#
+a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax32.add_artist(a)
+a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax32.add_artist(a)
+a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
+ax32.add_artist(a)
+# Give them a name:
+ax32.text(1.3, 0, 0, r'$x$')
+ax32.text(0, 1.3, 0, r'$y$')
+ax32.text(0, 0, 1.3, r'$z$')
+#
+ax32.quiver(X, Y, Z, Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2, length=0.3)
+ax32.set_axis_off() # Remove background
+
+
+# Vector flow figure 4
+ax41.quiver(X, Y, Z, -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2, length=0.3)
+# ax21.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
+# Here we create the arrows:
+arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
+#
+a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax42.add_artist(a)
+a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax42.add_artist(a)
+a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
+ax42.add_artist(a)
+# Give them a name:
+ax42.text(1.3, 0, 0, r'$x$')
+ax42.text(0, 1.3, 0, r'$y$')
+ax42.text(0, 0, 1.3, r'$z$')
+#
+ax42.quiver(X, Y, Z, -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2, length=0.3)
+ax42.set_axis_off() # Remove background
 
 plt.show()
 # """

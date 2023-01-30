@@ -26,8 +26,8 @@ def main():
     # State alpha |0> + beta |1>
     alpha = np.zeros(2*N+1,dtype=complex)
     beta  = np.zeros(2*N+1,dtype=complex)
-    alpha[0] = np.cos(theta/2)*np.exp(-1j*phi/2)
-    beta[0]  = np.sin(theta/2)*np.exp(1j*phi/2)
+    alpha[0] = np.cos(np.pi/4)#np.cos(theta/2)*np.exp(-1j*phi/2)
+    beta[0]  = np.sin(np.pi/4)#np.sin(theta/2)*np.exp(1j*phi/2)
     
     for k in range(N):
         # H_int^+ interaction
@@ -94,7 +94,7 @@ def main():
     ani = animation.FuncAnimation(fig, animate, np.arange(2*N+1),
                                   init_func=init, blit=False, repeat=False)
 
-    ani.save(f"bloch_sphere_{phi=}_{theta=}_tm={theta_minus}_tm={theta_pluss}.mp4", fps=60)
+    # ani.save(f"bloch_sphere_{phi=}_{theta=}_tm={theta_minus}_tm={theta_pluss}.mp4", fps=60)
     # ani.save(f'bloch_sphere_{phi=}_{theta=}_tm={theta_minus}_tm={theta_pluss}.mp4', fps=20)
     # """
 
@@ -108,8 +108,8 @@ def main():
     sphere.add_points(bloch_vec[:,1:],alpha=0.005)
     sphere.make_sphere()
 
-    plt.show()
     """
+    plt.show()
 
 if __name__ == "__main__":
     main()
