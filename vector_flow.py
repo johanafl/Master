@@ -133,25 +133,38 @@ def plot_vector_flow(X, Y, Z, U, V, W):
 
     return fig, ax1, ax2
 
-def plot_streamlines(alpha_0, beta_0, flow=0, nr_steps=1000, color=False):
+def plot_streamlines(alpha_0, beta_0, figure=False, axis=False, plot_sphere=True, flow=0, nr_steps=1000, color=False, label=False):
     # Streamlines does not appear to exist in 3D. Trying lineplots instead.
-    fig = plt.figure()
-    ax = fig.add_subplot(111,projection='3d')
-    # Fixing Bloch sphere: x- and y-label is interchaged in source code
-    # https://groups.google.com/g/qutip/c/LPt0niROuPA
-    sphere = qutip.Bloch(fig=fig, axes=ax)
-    sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
-    sphere.xlpos = [-1.3,-1.3]
-    sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
-    sphere.ylpos = [1.3,-1.3]
-    sphere.make_sphere()
+    if not figure:
+        fig = plt.figure()
+    else:
+        fig = figure
+
+    if not axis:
+        ax = fig.add_subplot(111,projection='3d')
+    else:
+        ax = axis
+
+    if plot_sphere:
+        # Fixing Bloch sphere: x- and y-label is interchaged in source code
+        # https://groups.google.com/g/qutip/c/LPt0niROuPA
+        sphere = qutip.Bloch(fig=fig, axes=ax)
+        sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
+        sphere.xlpos = [-1.3,-1.3]
+        sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
+        sphere.ylpos = [1.3,-1.3]
+        sphere.make_sphere()
 
     line = paths(alpha_0, beta_0, flow=flow, nr_steps=nr_steps)
     
-    if not color:
+    if not color and not label:
         ax.plot(line[0,:],line[1,:],line[2,:])
-    else:
+    elif not color:
+        ax.plot(line[0,:],line[1,:],line[2,:], label=label)
+    elif not label:
         ax.plot(line[0,:],line[1,:],line[2,:], color=color)
+    else:
+        ax.plot(line[0,:],line[1,:],line[2,:], color=color, label=label)
 
     return fig, ax
 
@@ -174,15 +187,28 @@ U2, V2, W2 = Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2
 U3, V3, W3 = Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2
 U4, V4, W4 = -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2
 
-fig_flow1, ax1_flow1, ax2_flow1 = plot_vector_flow(X, Y, Z, U1, V1, W1)
-fig_flow2, ax1_flow2, ax2_flow2 = plot_vector_flow(X, Y, Z, U2, V2, W2)
-fig_flow3, ax1_flow3, ax2_flow3 = plot_vector_flow(X, Y, Z, U3, V3, W3)
-fig_flow4, ax1_flow4, ax2_flow4 = plot_vector_flow(X, Y, Z, U4, V4, W4)
+# fig_H_up_x_up, ax1_H_up_x_up, ax2_H_up_x_up             = plot_vector_flow(X, Y, Z, U1, V1, W1)
+# fig_H_up_x_down, ax1_H_up_x_down, ax2_H_up_x_down       = plot_vector_flow(X, Y, Z, U2, V2, W2)
+# fig_H_down_x_up, ax1_H_down_x_up, ax2_H_down_x_up       = plot_vector_flow(X, Y, Z, U3, V3, W3)
+# fig_H_down_x_down, ax1_H_down_x_down, ax2_H_down_x_down = plot_vector_flow(X, Y, Z, U4, V4, W4)
 
-fig, ax                 = plot_streamlines(np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4), np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4), flow=1, nr_steps=20000, color="red")
-fig_stream1, ax_stream1 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="red")
-fig_stream2, ax_stream2 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="green")
-fig_stream3, ax_stream3 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="blue")
-fig_stream4, ax_stream4 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="black")
+# fig_H_up_x_up.suptitle(r"Vector flow for $H_+$ interaction and $|x_+\rangle$ measurement")
+# fig_H_up_x_down.suptitle(r"Vector flow for $H_+$ interaction and $|x_-\rangle$ measurement")
+# fig_H_down_x_up.suptitle(r"Vector flow for $H_-$ interaction and $|x_+\rangle$ measurement")
+# fig_H_down_x_down.suptitle(r"Vector flow for $H_-$ interaction and $|x_-\rangle$ measurement")
+
+# fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="red", label=r"$H_+$ and $|x_+\rangle$")
+# fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=1, nr_steps=10000, color="green", label=r"$H_+$ and $|x_-\rangle$")
+# fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=2, nr_steps=10000, color="blue", label=r"$H_-$ and $|x_+\rangle$")
+# fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=3, nr_steps=10000, color="black", label=r"$H_-$ and $|x_-\rangle$")
+
+# handles, labels = ax_stream.get_legend_handles_labels()
+# ax_stream.legend(handles[3:], labels[3:], loc="best")
+# fig_stream.suptitle(r"Streamlines starting in $|x_+\rangle$")
+
+alpha = np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4)
+beta  = np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4)
+fig, ax = plot_streamlines(alpha, beta, flow=1, nr_steps=20000, color="red")
+fig.suptitle(rf"Streamline starting in ({np.real(alpha):0.2}+{np.imag(alpha):0.2}i)$|0\rangle+$({np.real(beta):0.2}+{np.imag(beta):0.2}i)$|1\rangle$")
 
 plt.show()
