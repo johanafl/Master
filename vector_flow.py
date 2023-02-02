@@ -97,184 +97,92 @@ def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
     
     return bloch_vec
 
+def plot_vector_flow(X, Y, Z, U, V, W):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(121,projection='3d')
+    ax2 = fig.add_subplot(122,projection='3d')
+
+    # Fixing Bloch sphere: x- and y-label is interchaged in source code
+    sphere = qutip.Bloch(fig=fig, axes=ax1)
+    sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
+    sphere.xlpos = [-1.3,-1.3]
+    sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
+    sphere.ylpos = [1.3,-1.3]
+    sphere.make_sphere()
+
+    # Vector flow with Bloch sphere
+    ax1.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)
+    # If we want arrows on coordinate system: https://stackoverflow.com/questions/57015852/is-there-a-way-to-plot-a-3d-cartesian-coordinate-system-with-matplotlib
+    # Here we create the arrows:
+    arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
+    
+    # Vector flow without Bloch sphere
+    a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+    ax2.add_artist(a)
+    a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+    ax2.add_artist(a)
+    a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
+    ax2.add_artist(a)
+    # Give them a name:
+    ax2.text(1.3, 0, 0, r'$x$')
+    ax2.text(0, 1.3, 0, r'$y$')
+    ax2.text(0, 0, 1.3, r'$z$')
+
+    ax2.quiver(X, Y, Z, U, V, W, length=0.3)
+    ax2.set_axis_off() # Remove background
+
+    return fig, ax1, ax2
+
+def plot_streamlines(alpha_0, beta_0, flow=0, nr_steps=1000, color=False):
+    # Streamlines does not appear to exist in 3D. Trying lineplots instead.
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    # Fixing Bloch sphere: x- and y-label is interchaged in source code
+    # https://groups.google.com/g/qutip/c/LPt0niROuPA
+    sphere = qutip.Bloch(fig=fig, axes=ax)
+    sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
+    sphere.xlpos = [-1.3,-1.3]
+    sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
+    sphere.ylpos = [1.3,-1.3]
+    sphere.make_sphere()
+
+    line = paths(alpha_0, beta_0, flow=flow, nr_steps=nr_steps)
+    
+    if not color:
+        ax.plot(line[0,:],line[1,:],line[2,:])
+    else:
+        ax.plot(line[0,:],line[1,:],line[2,:], color=color)
+
+    return fig, ax
+
 # Create the mesh in polar coordinates and compute corresponding Z
 r = np.linspace(1., 1.2, 1)
 t = np.linspace(0, 2*np.pi, 8)
 p = np.linspace(0, np.pi, 8)
-t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
-p_sphere = np.linspace(0, np.pi, 25)
+# t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
+# p_sphere = np.linspace(0, np.pi, 25)
 
 R, T, P = np.meshgrid(r, t, p)
-T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
+# T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
 
 # Express the mesh in the cartesian system
 X, Y, Z = R*np.cos(T)*np.sin(P), R*np.sin(T)*np.sin(P), R*np.cos(P)
-X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
+# X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
 
-# """
-# Streamlines does not appear to exist in 3D. Trying lineplots instead.
-fig = plt.figure()
-ax = fig.add_subplot(111,projection='3d')
-# Fixing Bloch sphere: x- and y-label is interchaged in source code
-# https://groups.google.com/g/qutip/c/LPt0niROuPA
-sphere = qutip.Bloch(fig=fig, axes=ax)
-sphere.xlabel = ['$\\left|y_+\\right>$', ' ']
-sphere.xlpos = [-1.3,-1.3]
-sphere.ylabel = ['$\\left|x_+\\right>$', ' ']
-sphere.ylpos = [1.3,-1.3]
-sphere.make_sphere()
+U1, V1, W1 = -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2
+U2, V2, W2 = Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2
+U3, V3, W3 = Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2
+U4, V4, W4 = -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2
 
-line = paths(np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4), np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4), flow=0, nr_steps=20000)
-ax.plot(line[0,:],line[1,:],line[2,:], color="red")
-line0 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000)
-line1 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=1, nr_steps=10000)
-line2 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=2, nr_steps=10000)
-line3 = paths(1./np.sqrt(2), 1./np.sqrt(2), flow=3, nr_steps=10000)
-# ax.plot(line0[0,:],line0[1,:],line0[2,:], color="red")
-# ax.plot(line1[0,:],line1[1,:],line1[2,:], color="green")
-# ax.plot(line2[0,:],line2[1,:],line2[2,:], color="blue")
-# ax.plot(line3[0,:],line3[1,:],line3[2,:], color="black")
+fig_flow1, ax1_flow1, ax2_flow1 = plot_vector_flow(X, Y, Z, U1, V1, W1)
+fig_flow2, ax1_flow2, ax2_flow2 = plot_vector_flow(X, Y, Z, U2, V2, W2)
+fig_flow3, ax1_flow3, ax2_flow3 = plot_vector_flow(X, Y, Z, U3, V3, W3)
+fig_flow4, ax1_flow4, ax2_flow4 = plot_vector_flow(X, Y, Z, U4, V4, W4)
 
-# plt.show()
-# """
-
-# Figure 1: H_+ and x_+
-fig1 = plt.figure()
-ax11 = fig1.add_subplot(121,projection='3d')
-ax12 = fig1.add_subplot(122,projection='3d')
-
-# Fixing Bloch sphere: x- and y-label is interchaged in source code
-sphere1 = qutip.Bloch(fig=fig1, axes=ax11)
-sphere1.xlabel = ['$\\left|y_+\\right>$', ' ']
-sphere1.xlpos = [-1.3,-1.3]
-sphere1.ylabel = ['$\\left|x_+\\right>$', ' ']
-sphere1.ylpos = [1.3,-1.3]
-sphere1.make_sphere()
-
-# Figure 2: H_+ and x_-
-fig2 = plt.figure()
-ax21 = fig2.add_subplot(121,projection='3d')
-ax22 = fig2.add_subplot(122,projection='3d')
-
-# Fixing Bloch sphere: x- and y-label is interchaged in source code
-sphere2 = qutip.Bloch(fig=fig2, axes=ax21)
-sphere2.xlabel = ['$\\left|y_+\\right>$', ' ']
-sphere2.xlpos = [-1.3,-1.3]
-sphere2.ylabel = ['$\\left|x_+\\right>$', ' ']
-sphere2.ylpos = [1.3,-1.3]
-sphere2.make_sphere()
-
-# Figure 3: H_- and x_+
-fig3 = plt.figure()
-ax31 = fig3.add_subplot(121,projection='3d')
-ax32 = fig3.add_subplot(122,projection='3d')
-
-# Fixing Bloch sphere: x- and y-label is interchaged in source code
-sphere3 = qutip.Bloch(fig=fig3, axes=ax31)
-sphere3.xlabel = ['$\\left|y_+\\right>$', ' ']
-sphere3.xlpos = [-1.3,-1.3]
-sphere3.ylabel = ['$\\left|x_+\\right>$', ' ']
-sphere3.ylpos = [1.3,-1.3]
-sphere3.make_sphere()
-
-# Figure 4: H_- and x_-
-fig4 = plt.figure()
-ax41 = fig4.add_subplot(121,projection='3d')
-ax42 = fig4.add_subplot(122,projection='3d')
-
-# Fixing Bloch sphere: x- and y-label is interchaged in source code
-sphere4 = qutip.Bloch(fig=fig4, axes=ax41)
-sphere4.xlabel = ['$\\left|y_+\\right>$', ' ']
-sphere4.xlpos = [-1.3,-1.3]
-sphere4.ylabel = ['$\\left|x_+\\right>$', ' ']
-sphere4.ylpos = [1.3,-1.3]
-sphere4.make_sphere()
-
-# Vector flow figure 1
-ax11.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)#, headwidth=5.)
-# If we want arrows on coordinate system: https://stackoverflow.com/questions/57015852/is-there-a-way-to-plot-a-3d-cartesian-coordinate-system-with-matplotlib
-# Here we create the arrows:
-arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
-#
-a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax12.add_artist(a)
-a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax12.add_artist(a)
-a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
-ax12.add_artist(a)
-# Give them a name:
-ax12.text(1.3, 0, 0, r'$x$')
-ax12.text(0, 1.3, 0, r'$y$')
-ax12.text(0, 0, 1.3, r'$z$')
-#
-ax12.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)
-# ax12.quiver(X, Y, Z, Z/2, -Z/2, (Y - X)/2, length=0.3)
-ax12.set_axis_off() # Remove background
-# ax12.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
-
-
-# Vector flow figure 2
-ax21.quiver(X, Y, Z, Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2, length=0.3)
-# ax21.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
-# Here we create the arrows:
-arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
-#
-a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax22.add_artist(a)
-a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax22.add_artist(a)
-a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
-ax22.add_artist(a)
-# Give them a name:
-ax22.text(1.3, 0, 0, r'$x$')
-ax22.text(0, 1.3, 0, r'$y$')
-ax22.text(0, 0, 1.3, r'$z$')
-#
-ax22.quiver(X, Y, Z, Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2, length=0.3)
-# ax22.quiver(X, Y, Z, Z/2, -Z/2, (Y - X)/2, length=0.3)
-# ax22.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
-ax22.set_axis_off() # Remove background
-
-
-# Vector flow figure 3
-ax31.quiver(X, Y, Z, Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2, length=0.3)
-# Here we create the arrows:
-arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
-#
-a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax32.add_artist(a)
-a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax32.add_artist(a)
-a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
-ax32.add_artist(a)
-# Give them a name:
-ax32.text(1.3, 0, 0, r'$x$')
-ax32.text(0, 1.3, 0, r'$y$')
-ax32.text(0, 0, 1.3, r'$z$')
-#
-ax32.quiver(X, Y, Z, Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2, length=0.3)
-ax32.set_axis_off() # Remove background
-
-
-# Vector flow figure 4
-ax41.quiver(X, Y, Z, -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2, length=0.3)
-# ax21.quiver(X, Y, Z, -Z/2, -Z/2, (Y + X)/2, length=0.2)
-# Here we create the arrows:
-arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
-#
-a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax42.add_artist(a)
-a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax42.add_artist(a)
-a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
-ax42.add_artist(a)
-# Give them a name:
-ax42.text(1.3, 0, 0, r'$x$')
-ax42.text(0, 1.3, 0, r'$y$')
-ax42.text(0, 0, 1.3, r'$z$')
-#
-ax42.quiver(X, Y, Z, -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2, length=0.3)
-ax42.set_axis_off() # Remove background
+fig, ax                 = plot_streamlines(np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4), np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4), flow=1, nr_steps=20000, color="red")
+fig_stream1, ax_stream1 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="red")
+fig_stream2, ax_stream2 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="green")
+fig_stream3, ax_stream3 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="blue")
+fig_stream4, ax_stream4 = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="black")
 
 plt.show()
-# """
