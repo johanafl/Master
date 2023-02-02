@@ -26,6 +26,33 @@ class Arrow3D(FancyArrowPatch):
         return np.min(zs)
 
 def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
+    """
+    Compute path of two-level system (TLS) interacting with another TLS
+    with interaction Hamiltonian 
+    H_+=(theta_+/4)*(sigma_x \otimes sigma_x + sigma_y \otimes sigma_y)
+    or
+    H_-=(theta_-/4)*(sigma_x \otimes sigma_x - sigma_y \otimes sigma_y)
+    from initial state alpha_0 |0> + beta_0 |1>. We use the 
+    representation |0> = (1 0), |1> = (0 1), sigma_z |0> = |0>,
+    sigma_z |1> = -|1>.
+    After each time translation, the environment is measured in the
+    basis { |x_+>, |x_-> } (which is a weak measurement) to create a
+    path.
+
+    Parameters
+    ----------
+    alpha_0 : numpy.complex128
+        Inital (complex) value for |0>.
+    beta_0 : numpy.complex128
+        Inital (complex) value for |1>.
+    flow : int
+        Choice of interaction Hamiltonian and measurement. 
+        Flow 1: H_+ and measure |x_+>   Flow 2: H_+ and measure |x_->
+        Flow 3: H_- and measure |x_+>   Flow 2: H_- and measure |x_->
+    nr_steps : int
+        Number of steps/measurements. This is equivalent to the amount
+        of time that we simulate.
+    """
     # Related to interaction strength/time
     theta_minus = 0.1
     theta_pluss = 0.01 #theta_minus/5
@@ -36,9 +63,10 @@ def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
     # State alpha |0> + beta |1>
     alpha = np.zeros(N+1,dtype=complex)
     beta  = np.zeros(N+1,dtype=complex)
-    alpha[0] = alpha_0
-    beta[0]  = beta_0
+    alpha[0] = alpha_0  # Initial state
+    beta[0]  = beta_0   # Initial state
 
+    # Type of interaction and measurement
     if flow == 0:
         for k in range(N):
             # H_int^+ interaction
@@ -90,7 +118,7 @@ def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
             beta[k+1]  = (c_10-c_11)/np.sqrt(2*(1-p_up))
 
     # Convert alpha and beta to Bloch vector
-    bloch_vec = np.zeros((3,N+1))#,dtype=complex)
+    bloch_vec = np.zeros((3,N+1))
     bloch_vec[2,:] = np.real(2*alpha*np.conj(alpha)-1)
     bloch_vec[1,:] = 2*np.imag(beta*np.conj(alpha))
     bloch_vec[0,:] = 2*np.real(alpha*np.conj(beta))
@@ -98,6 +126,27 @@ def paths(alpha_0, beta_0, flow=0, nr_steps=1000):
     return bloch_vec
 
 def plot_vector_flow(X, Y, Z, U, V, W):
+    """
+    Function for plotting the flow of the Bloch vector on the Bloch
+    sphere for a given interaction Hamiltonian and measurement. Both
+    the meshgrid of point where to plot (X, Y, Z) and pre-calculated
+    flow (U, V, W) must be given.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Meshgrid in x-direction of point where we plot the vector flow.
+    Y : numpy.ndarray
+        Meshgrid in y-direction of point where we plot the vector flow.
+    Z : numpy.ndarray
+        Meshgrid in z-direction of point where we plot the vector flow.
+    U : numpy.ndarray
+        Meshgrid of the vector flow in x-direction.
+    V : numpy.ndarray
+        Meshgrid of the vector flow in y-direction.
+    W : numpy.ndarray
+        Meshgrid of the vector flow in z-direction.
+    """
     fig = plt.figure()
     ax1 = fig.add_subplot(121,projection='3d')
     ax2 = fig.add_subplot(122,projection='3d')
@@ -134,6 +183,36 @@ def plot_vector_flow(X, Y, Z, U, V, W):
     return fig, ax1, ax2
 
 def plot_streamlines(alpha_0, beta_0, figure=False, axis=False, plot_sphere=True, flow=0, nr_steps=1000, color=False, label=False):
+    """
+    Function for plotting the flow of the Bloch vector on the Bloch
+    sphere for a given interaction Hamiltonian and measurement. Both
+    the meshgrid of point where to plot (X, Y, Z) and pre-calculated
+    flow (U, V, W) must be given.
+
+    Parameters
+    ----------
+    alpha_0 : numpy.complex128
+        Inital (complex) value for |0>.
+    beta_0 : numpy.complex128
+        Inital (complex) value for |1>.
+    figure : matplotlib.figure.Figure
+        Already existing figure to overwrite or plot more on
+    axis : matplotlib.axes._subplots.Axes3DSubplot
+        Already existing axis object to overwrite or plot more on
+    plot_sphere : bool
+        Option to plot a (new) Bloch sphere
+    flow : int
+        Choice of interaction Hamiltonian and measurement. 
+        Flow 1: H_+ and measure |x_+>   Flow 2: H_+ and measure |x_->
+        Flow 3: H_- and measure |x_+>   Flow 2: H_- and measure |x_->
+    nr_steps : int
+        Number of steps/measurements. This is equivalent to the amount
+        of time that we simulate.
+    color : str
+        Choice of linecolor
+    label : str
+        Label for the plotted line
+    """
     # Streamlines does not appear to exist in 3D. Trying lineplots instead.
     if not figure:
         fig = plt.figure()
