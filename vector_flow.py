@@ -249,6 +249,25 @@ def plot_streamlines(alpha_0, beta_0, figure=False, axis=False, plot_sphere=True
     return fig, ax
 
 def dN_k_dtheta(X, Y, Z, flow=0):
+    """
+    Function returning the Jacobi matrix of the coordinate 
+    transformation from cartesian to spherical coordinates. The 
+    expressions used in this implementation are derived assuming radius
+    equal to 1, i.e. x^2 + y^2 + z^2 = 1.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Meshgrid in x-direction of point where we plot the vector flow.
+    Y : numpy.ndarray
+        Meshgrid in y-direction of point where we plot the vector flow.
+    Z : numpy.ndarray
+        Meshgrid in z-direction of point where we plot the vector flow.
+    flow : int
+        Choice of interaction Hamiltonian and measurement. 
+        Flow 1: H_+ and measure |x_+>   Flow 2: H_+ and measure |x_->
+        Flow 3: H_- and measure |x_+>   Flow 2: H_- and measure |x_->
+    """
     if flow == 0:
         return -X*Y/2, (1 - Z - Y*Y)/2, Y*(1 - Z)/2
     
@@ -261,20 +280,129 @@ def dN_k_dtheta(X, Y, Z, flow=0):
     else:
         return -X*Y/2, (1 + Z - Y*Y)/2, -Y*(1 + Z)/2
 
+def coor_trans_from_cartesian_to_sphere_coor(x, y, z):
+    """
+    Function returning the coordinate transformation from cartesian to 
+    spherical coordinates. The expressions used in this implementation
+    are derived assuming radius equal to 1, i.e. x^2 + y^2 + z^2 = 1.
+
+    Parameters
+    ----------
+    x : float
+        x-component of Bloch vector
+    y : float
+        y-component of Bloch vector
+    z : float
+        z-component of Bloch vector
+    """
+    denominator = x*x + y*y
+    if denominator == 0:
+        return 0, np.arccos(z)
+    else:
+        return np.arccos( x/np.sqrt(denominator) ), np.arccos(z)
+
+def jacobian_from_cartesian_to_sphere_coor(x, y, z):
+    """
+    Function returning the Jacobi matrix of the coordinate 
+    transformation from cartesian to spherical coordinates. The 
+    expressions used in this implementation are derived assuming radius
+    equal to 1, i.e. x^2 + y^2 + z^2 = 1.
+
+    Parameters
+    ----------
+    x : float
+        x-component of Bloch vector
+    y : float
+        y-component of Bloch vector
+    z : float
+        z-component of Bloch vector
+    """
+    jacobi = np.zeros((2,3))
+    denominator = x*x + y*y
+    
+    if denominator == 0:
+        return jacobi
+    
+    else:
+        jacobi[0,0] = x*z/np.sqrt(denominator)
+        jacobi[0,1] = y*z/np.sqrt(denominator)
+        jacobi[0,2] = -np.sqrt(denominator)
+
+        jacobi[1,0] = -y/denominator
+        jacobi[1,1] = x/denominator
+
+    return jacobi
+
+def winkel_tripel_proj(phi, lam, cos_phi_0=2/np.pi):
+    """
+    Function returning the Winkel tripel map projection.
+
+    Parameters
+    ----------
+    phi : float
+        Latitude (angle from 'equator')
+    lam : float
+        Longitude (angle from central meridian, i.e. the defined east
+        west midpoint)
+    cos_phi_0 : float
+        phi_0 is the standard parallel for the equirectangular 
+        projection. That is a constant defining where the scale of the 
+        projection is true
+    """    
+    alpha = np.arccos(np.cos(phi)*np.cos(lam/2))
+
+    if np.sinc(alpha) == 0:
+        raise ValueError("Projection will not work as angle is to large.")
+
+    x = 0.5*( 2*np.cos(phi)*np.sin(lam/2)/np.sinc(alpha) + lam*cos_phi_0 )
+    y = 0.5*( np.sin(phi)/np.sinc(alpha) + phi )
+
+    return x, y
+
+def jacobian_winkel_tripel(phi, lam, cos_phi_0=2/np.pi):
+    """
+    Function returning the Jacobi matrix of the Winkel tripel map 
+    projection.
+
+    Parameters
+    ----------
+    phi : float
+        Latitude (angle from 'equator')
+    lam : float
+        Longitude (angle from central meridian, i.e. the defined east
+        west midpoint)
+    cos_phi_0 : float
+        phi_0 is the standard parallel for the equirectangular 
+        projection. That is a constant defining where the scale of the 
+        projection is true
+    """    
+    jacobi = np.zeros((2,2))
+    c = 1 - np.cos(phi)*np.cos(phi)*np.cos(lam/2)*np.cos(lam/2)
+    alpha = np.arccos(np.cos(phi)*np.cos(lam/2))
+    
+    if (np.sinc(alpha) == 0) or (c == 0):
+        raise ValueError("Projection will not work as angle is to large.")
+
+    jacobi[0,0] = np.sin(lam)*np.sin(2*phi) / (4*c) - np.sin(lam/2)*np.sin(phi) / (np.sqrt(c)*np.sinc(alpha))
+    jacobi[0,1] = 0.5*( np.cos(phi)*np.cos(phi)*np.sin(lam/2)*np.sin(lam/2) / c - np.cos(phi)*np.cos(lam/2)*np.sin(phi)*np.sin(phi) / (np.sqrt(c)*np.sinc(alpha)) + cos_phi_0 )
+    jacobi[1,0] = 0.5*( np.sin(phi)*np.sin(phi)*np.cos(lam/2)*np.cos(lam/2) / c - (1 - np.cos(lam/2)*np.cos(lam/2))*np.cos(phi) / (np.sqrt(c)*np.sinc(alpha)) + 1 )
+    jacobi[1,1] = 0.125*( np.sin(2*phi)*np.cos(lam/2) / c - np.sin(phi)*np.cos(phi)*np.cos(phi)*np.sin(lam) / (np.sqrt(c)*np.sinc(alpha)) )
+
+    return jacobi
 
 # Create the mesh in polar coordinates and compute corresponding Z
 r = np.linspace(1., 1.2, 1)
 t = np.linspace(0, 2*np.pi, 15)
 p = np.linspace(0, np.pi, 15)
-# t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
-# p_sphere = np.linspace(0, np.pi, 25)
+t_sphere = np.linspace(0, 2*np.pi, 15)    # For plotting surface
+p_sphere = np.linspace(0.01, np.pi, 15)   # NB! Start at 0.01 because Winkel triple projection does not 'like' all angles.
 
 R, T, P = np.meshgrid(r, t, p)
-# T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
+T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
 
 # Express the mesh in the cartesian system
 X, Y, Z = R*np.cos(T)*np.sin(P), R*np.sin(T)*np.sin(P), R*np.cos(P)
-# X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
+X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
 
 U1, V1, W1 = dN_k_dtheta(X, Y, Z, flow=0)
 U2, V2, W2 = dN_k_dtheta(X, Y, Z, flow=1)
@@ -326,75 +454,32 @@ fig_H_up_x_up.suptitle(r"Vector flow for $H_+$ interaction and $|x_+\rangle$ mea
 # ax.quiver(X_stereo, Y_stereo, U_stereo, V_stereo)
 
 plt.show()
-"""
-# Trying to understand stereograpich projection
-# Plot the surface
-t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
-p_sphere = np.linspace(0, np.pi, 25)
 
-T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
-X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
+"""
+# Idea for projection
+U_winkel, V_winkel, W_winkel = dN_k_dtheta(X_sphere, Y_sphere, Z_sphere, flow=0)
+x_prime = np.zeros_like(X_sphere)
+y_prime = np.zeros_like(Y_sphere)
+new_u = np.zeros_like(U_winkel)
+new_v = np.zeros_like(V_winkel)
+
+idx_i = new_u.shape[0]
+idx_j = new_u.shape[1]
+
+for i in range(idx_i):
+    for j in range(idx_j):
+        theta, phi = coor_trans_from_cartesian_to_sphere_coor(X_sphere[i,j], Y_sphere[i,j], Z_sphere[i,j])
+        long, lat = theta - np.pi, phi - np.pi/2
+        
+        push_forward_sphere = jacobian_from_cartesian_to_sphere_coor(X_sphere[i,j], Y_sphere[i,j], Z_sphere[i,j])
+        push_forward_winkel = jacobian_winkel_tripel(lat, long)
+        tangent = np.array([U_winkel[i,j], V_winkel[i,j], W_winkel[i,j]])
+        tan_sphere = np.matmul(push_forward_sphere, tangent)
+        new_u[i,j], new_v[i,j] = np.matmul(push_forward_winkel, tan_sphere)
+
+        x_prime[i,j], y_prime[i,j] = winkel_tripel_proj(lat, long)
 
 fig = plt.figure()
-ax = fig.add_subplot(111,projection='3d')
-ax.plot_surface(X_sphere, Y_sphere, Z_sphere, color='#FFDDDD', alpha=0.2)
-ax.plot(1.0 * np.cos(t_sphere), 1.0 * np.sin(t_sphere), zs=0, zdir='z', lw=1, color='gray')
-
-# Here we create the arrows:
-arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
-
-# Vector flow without Bloch sphere
-a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax.add_artist(a)
-a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
-ax.add_artist(a)
-a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
-ax.add_artist(a)
-# Give them a name:
-ax.text(1.3, 0, 0, r'$x$')
-ax.text(0, 1.3, 0, r'$y$')
-ax.text(0, 0, 1.3, r'$z$')
-
-t = np.linspace(0,1.2,1000)
-x, y, z = np.cos(np.pi/4)*np.sin(5*np.pi/6), np.sin(np.pi/4)*np.sin(5*np.pi/6), np.cos(5*np.pi/6)
-ax.plot(x, y, z, marker='o', markersize=5)
-ax.plot(x/(1 - z), y/(1 - z), 0, marker='o', markersize=5)
-ax.plot(t*x, t*y, 1 + t*(z - 1))
-
-plt.show()
-
-# WRONG:
-x_up_stereo = []
-y_up_stereo = []
-dx_up_stereo = []
-dy_up_stereo = []
-x_down_stereo = []
-y_down_stereo = []
-dx_down_stereo = []
-dy_down_stereo = []
-
-for i in range(15):
-    for j in range(1):
-        for k in range(15):
-            n_z = Z[i,j,k]
-            if n_z <= 0:
-                x_up_stereo.append(X[i,j,k]/(1 - n_z))
-                y_up_stereo.append(Y[i,j,k]/(1 - n_z))
-                dx_up_stereo.append(U1[i,j,k]/(1 - W1[i,j,k]))
-                dy_up_stereo.append(V1[i,j,k]/(1 - W1[i,j,k]))
-            # else:
-            #     x_down_stereo.append(X[i,j,k]/(1 - n_z))
-            #     y_down_stereo.append(Y[i,j,k]/(1 - n_z))
-            #     dx_down_stereo.append(U1[i,j,k]/(1 - W1[i,j,k]))
-            #     dy_down_stereo.append(V1[i,j,k]/(1 - W1[i,j,k]))
-plt.figure(1)
-plt.quiver(x_up_stereo,y_up_stereo,dx_up_stereo,dy_up_stereo)
-# plt.figure(2)
-# plt.quiver(x_down_stereo,y_down_stereo,dx_down_stereo,dy_down_stereo)
-# plt.show()
-
-# print(X)
-# print(np.shape(X))
-# print(np.shape(Y))
-# print(np.shape(Z))
+ax = fig.add_subplot(111)
+ax.quiver(x_prime,y_prime,new_u,new_v)
 """
