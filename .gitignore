@@ -128,9 +128,10 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Texts, books and animations
+# Texts, books, figures and animations
 *.pdf
 *.txt
+*.png
 WRONG_animations/
 books_and_articles/
 animation/

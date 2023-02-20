@@ -160,7 +160,8 @@ def plot_vector_flow(X, Y, Z, U, V, W):
     sphere.make_sphere()
 
     # Vector flow with Bloch sphere
-    ax1.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)
+    # ax1.quiver(X, Y, Z, -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2, length=0.3)
+    ax1.quiver(X, Y, Z, U, V, W, length=0.3)
     # If we want arrows on coordinate system: https://stackoverflow.com/questions/57015852/is-there-a-way-to-plot-a-3d-cartesian-coordinate-system-with-matplotlib
     # Here we create the arrows:
     arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
@@ -247,10 +248,24 @@ def plot_streamlines(alpha_0, beta_0, figure=False, axis=False, plot_sphere=True
 
     return fig, ax
 
+def dN_k_dtheta(X, Y, Z, flow=0):
+    if flow == 0:
+        return -X*Y/2, (1 - Z - Y*Y)/2, Y*(1 - Z)/2
+    
+    elif flow == 1:
+        return X*Y/2, -(1 - Z - Y*Y)/2, -Y*(1 - Z)/2    
+
+    elif flow == 2:
+        return X*Y/2, -(1 + Z - Y*Y)/2, Y*(1 + Z)/2
+
+    else:
+        return -X*Y/2, (1 + Z - Y*Y)/2, -Y*(1 + Z)/2
+
+
 # Create the mesh in polar coordinates and compute corresponding Z
 r = np.linspace(1., 1.2, 1)
-t = np.linspace(0, 2*np.pi, 8)
-p = np.linspace(0, np.pi, 8)
+t = np.linspace(0, 2*np.pi, 15)
+p = np.linspace(0, np.pi, 15)
 # t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
 # p_sphere = np.linspace(0, np.pi, 25)
 
@@ -261,33 +276,125 @@ R, T, P = np.meshgrid(r, t, p)
 X, Y, Z = R*np.cos(T)*np.sin(P), R*np.sin(T)*np.sin(P), R*np.cos(P)
 # X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
 
-U1, V1, W1 = -Y*X/2, (-Z + 1 - Y*Y)/2, (Y*(1 - Z))/2
-U2, V2, W2 = Y*X/2, (Z - 1 + Y*Y)/2, (Y*(-1 + Z))/2
-U3, V3, W3 = Y*X/2, (-Z - 1 + Y*Y)/2, (Y*(1 + Z))/2
-U4, V4, W4 = -Y*X/2, (Z + 1 - Y*Y)/2, (Y*(-1 - Z))/2
+U1, V1, W1 = dN_k_dtheta(X, Y, Z, flow=0)
+U2, V2, W2 = dN_k_dtheta(X, Y, Z, flow=1)
+U3, V3, W3 = dN_k_dtheta(X, Y, Z, flow=2)
+U4, V4, W4 = dN_k_dtheta(X, Y, Z, flow=3)
 
-# fig_H_up_x_up, ax1_H_up_x_up, ax2_H_up_x_up             = plot_vector_flow(X, Y, Z, U1, V1, W1)
+# # Plot vector flow with the above flow
+fig_H_up_x_up, ax1_H_up_x_up, ax2_H_up_x_up             = plot_vector_flow(X, Y, Z, U1, V1, W1)
 # fig_H_up_x_down, ax1_H_up_x_down, ax2_H_up_x_down       = plot_vector_flow(X, Y, Z, U2, V2, W2)
 # fig_H_down_x_up, ax1_H_down_x_up, ax2_H_down_x_up       = plot_vector_flow(X, Y, Z, U3, V3, W3)
 # fig_H_down_x_down, ax1_H_down_x_down, ax2_H_down_x_down = plot_vector_flow(X, Y, Z, U4, V4, W4)
 
-# fig_H_up_x_up.suptitle(r"Vector flow for $H_+$ interaction and $|x_+\rangle$ measurement")
+# # Give title to all figures
+fig_H_up_x_up.suptitle(r"Vector flow for $H_+$ interaction and $|x_+\rangle$ measurement")
 # fig_H_up_x_down.suptitle(r"Vector flow for $H_+$ interaction and $|x_-\rangle$ measurement")
 # fig_H_down_x_up.suptitle(r"Vector flow for $H_-$ interaction and $|x_+\rangle$ measurement")
 # fig_H_down_x_down.suptitle(r"Vector flow for $H_-$ interaction and $|x_-\rangle$ measurement")
 
+# # Plot streamlines of H_+ and |x_+> starting from |y_->
+# fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), -1j/np.sqrt(2), flow=0, nr_steps=10000, color="red", label=r"$H_+$ and $|x_+\rangle$")
+
+# # Plot streamlines of all flows starting from |x_+>
 # fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), flow=0, nr_steps=10000, color="red", label=r"$H_+$ and $|x_+\rangle$")
 # fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=1, nr_steps=10000, color="green", label=r"$H_+$ and $|x_-\rangle$")
 # fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=2, nr_steps=10000, color="blue", label=r"$H_-$ and $|x_+\rangle$")
 # fig_stream, ax_stream = plot_streamlines(1./np.sqrt(2), 1./np.sqrt(2), figure=fig_stream, axis=ax_stream, plot_sphere=False, flow=3, nr_steps=10000, color="black", label=r"$H_-$ and $|x_-\rangle$")
 
+# # Add legend with correct labels (it adds X, Y and Z for some reason)
 # handles, labels = ax_stream.get_legend_handles_labels()
 # ax_stream.legend(handles[3:], labels[3:], loc="best")
 # fig_stream.suptitle(r"Streamlines starting in $|x_+\rangle$")
 
-alpha = np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4)
-beta  = np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4)
-fig, ax = plot_streamlines(alpha, beta, flow=1, nr_steps=20000, color="red")
-fig.suptitle(rf"Streamline starting in ({np.real(alpha):0.2}+{np.imag(alpha):0.2}i)$|0\rangle+$({np.real(beta):0.2}+{np.imag(beta):0.2}i)$|1\rangle$")
+# # Plot streamlines of a flow starting from a point (toy model)
+# alpha = np.cos(np.pi/4-0.5)*np.exp(1j*np.pi/4)
+# beta  = np.sin(np.pi/4-0.5)*np.exp(-1j*np.pi/4)
+# fig, ax = plot_streamlines(alpha, beta, flow=1, nr_steps=20000, color="red")
+# fig.suptitle(rf"Streamline starting in ({np.real(alpha):0.2}+{np.imag(alpha):0.2}i)$|0\rangle+$({np.real(beta):0.2}+{np.imag(beta):0.2}i)$|1\rangle$")
+
+# # Plot stereographic projection (think something is wrong here)
+# r_stereo = np.linspace(0,1,10)
+# t_stereo = np.linspace(0,2*np.pi,10)
+# R_stereo, T_stereo = np.meshgrid(r_stereo, t_stereo)
+# X_stereo, Y_stereo = R_stereo*np.cos(T_stereo), R_stereo*np.sin(T_stereo)
+# U_stereo = 0*X_stereo
+# V_stereo = U_stereo+0.5
+
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+# ax.quiver(X_stereo, Y_stereo, U_stereo, V_stereo)
 
 plt.show()
+"""
+# Trying to understand stereograpich projection
+# Plot the surface
+t_sphere = np.linspace(0, 2*np.pi, 25)    # For plotting surface
+p_sphere = np.linspace(0, np.pi, 25)
+
+T_sphere, P_sphere = np.meshgrid(t_sphere, p_sphere)  # For plotting surface
+X_sphere, Y_sphere, Z_sphere = np.cos(T_sphere)*np.sin(P_sphere), np.sin(T_sphere)*np.sin(P_sphere), np.cos(P_sphere) # For plotting surface
+
+fig = plt.figure()
+ax = fig.add_subplot(111,projection='3d')
+ax.plot_surface(X_sphere, Y_sphere, Z_sphere, color='#FFDDDD', alpha=0.2)
+ax.plot(1.0 * np.cos(t_sphere), 1.0 * np.sin(t_sphere), zs=0, zdir='z', lw=1, color='gray')
+
+# Here we create the arrows:
+arrow_prop_dict = dict(mutation_scale=20, arrowstyle='->', shrinkA=0, shrinkB=0)
+
+# Vector flow without Bloch sphere
+a = Arrow3D([-1.2, 1.2], [0, 0], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax.add_artist(a)
+a = Arrow3D([0, 0], [-1.2, 1.2], [0, 0], **arrow_prop_dict, color='k', alpha=0.4)
+ax.add_artist(a)
+a = Arrow3D([0, 0], [0, 0], [-1.2, 1.2], **arrow_prop_dict, color='k', alpha=0.4)
+ax.add_artist(a)
+# Give them a name:
+ax.text(1.3, 0, 0, r'$x$')
+ax.text(0, 1.3, 0, r'$y$')
+ax.text(0, 0, 1.3, r'$z$')
+
+t = np.linspace(0,1.2,1000)
+x, y, z = np.cos(np.pi/4)*np.sin(5*np.pi/6), np.sin(np.pi/4)*np.sin(5*np.pi/6), np.cos(5*np.pi/6)
+ax.plot(x, y, z, marker='o', markersize=5)
+ax.plot(x/(1 - z), y/(1 - z), 0, marker='o', markersize=5)
+ax.plot(t*x, t*y, 1 + t*(z - 1))
+
+plt.show()
+
+# WRONG:
+x_up_stereo = []
+y_up_stereo = []
+dx_up_stereo = []
+dy_up_stereo = []
+x_down_stereo = []
+y_down_stereo = []
+dx_down_stereo = []
+dy_down_stereo = []
+
+for i in range(15):
+    for j in range(1):
+        for k in range(15):
+            n_z = Z[i,j,k]
+            if n_z <= 0:
+                x_up_stereo.append(X[i,j,k]/(1 - n_z))
+                y_up_stereo.append(Y[i,j,k]/(1 - n_z))
+                dx_up_stereo.append(U1[i,j,k]/(1 - W1[i,j,k]))
+                dy_up_stereo.append(V1[i,j,k]/(1 - W1[i,j,k]))
+            # else:
+            #     x_down_stereo.append(X[i,j,k]/(1 - n_z))
+            #     y_down_stereo.append(Y[i,j,k]/(1 - n_z))
+            #     dx_down_stereo.append(U1[i,j,k]/(1 - W1[i,j,k]))
+            #     dy_down_stereo.append(V1[i,j,k]/(1 - W1[i,j,k]))
+plt.figure(1)
+plt.quiver(x_up_stereo,y_up_stereo,dx_up_stereo,dy_up_stereo)
+# plt.figure(2)
+# plt.quiver(x_down_stereo,y_down_stereo,dx_down_stereo,dy_down_stereo)
+# plt.show()
+
+# print(X)
+# print(np.shape(X))
+# print(np.shape(Y))
+# print(np.shape(Z))
+"""
